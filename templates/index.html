@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- CapGen v3.0 - GREEN THEME BUILD -->
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CapGen — AI Instagram Captions</title>
+<title>CapGen - AI Instagram Captions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -602,7 +602,7 @@ textarea::placeholder{color:var(--text-muted2);}
       <button class="platform-btn" onclick="setPlatform(this,'linkedin')">💼 LinkedIn</button>
     </div>
 
-    <textarea id="contextInput" rows="2" placeholder="Extra context — location, occasion, mood… (optional)" oninput="updateContextCounter()"></textarea>
+    <textarea id="contextInput" rows="2" placeholder="Extra context - location, occasion, mood... (optional)" oninput="updateContextCounter()"></textarea>
     <div class="char-counter" id="contextCounter">0 / 500</div>
 
     <!-- SCHEDULED POST -->
@@ -639,7 +639,7 @@ textarea::placeholder{color:var(--text-muted2);}
   <!-- LOADING -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner"></div>
-    <div class="loading-text" id="loadingText">Generating your captions…</div>
+    <div class="loading-text" id="loadingText">Generating your captions...</div>
   </div>
 
   <!-- RESULTS -->
@@ -808,8 +808,8 @@ var templateMap={
   'question':'Start with a thought-provoking question, then answer it, then end with a call-to-action.',
   'story':'Tell a short micro-story in 3 sentences: setup, conflict, resolution.',
   'listicle':'Write as 3 short bullet-point tips related to the image.',
-  'quote':'Write in a powerful quote style — short, punchy, memorable.',
-  'behind':'Write as a behind-the-scenes reveal — what happened before/after this shot.'
+  'quote':'Write in a powerful quote style - short, punchy, memorable.',
+  'behind':'Write as a behind-the-scenes reveal - what happened before/after this shot.'
 };
 var activeTemplate='';
 
@@ -871,14 +871,14 @@ function setSchedule(){
   var delay=dt.getTime()-now.getTime();
   var rem=document.getElementById('scheduleReminder');
   var txt=document.getElementById('scheduleReminderText');
-  txt.textContent='⏰ Reminder set for '+dt.toLocaleString()+' — you\'ll get an alert to post!';
+  txt.textContent='⏰ Reminder set for '+dt.toLocaleString()+' - you\'ll get an alert to post!';
   rem.style.display='flex';
   // Browser notification
   if('Notification' in window){
     Notification.requestPermission().then(function(perm){
       if(perm==='granted'){
         setTimeout(function(){
-          new Notification('CapGen Reminder 📸',{
+          new Notification('CapGen Reminder',{
             body:'Time to post your Instagram caption!',
             icon:'/static/icon-192.png'
           });
@@ -919,7 +919,7 @@ function buildFormData(){
    UI HELPERS
 ═══════════════════════════════════════ */
 function showLoading(text){
-  document.getElementById('loadingText').textContent=text||'Generating…';
+  document.getElementById('loadingText').textContent=text||'Generating...';
   document.getElementById('loadingOverlay').style.display='block';
   document.getElementById('results-section').style.display='none';
   document.getElementById('resultsTopActions').style.display='none';
@@ -1026,9 +1026,9 @@ function predictScore(text){
 
 function scoreLabel(s){
   if(s>=8)return 'Great engagement potential!';
-  if(s>=6)return 'Good — likely to perform well';
-  if(s>=4)return 'Average — consider adding emojis or a question';
-  return 'Low — try making it more engaging';
+  if(s>=6)return 'Good - likely to perform well';
+  if(s>=4)return 'Average - consider adding emojis or a question';
+  return 'Low - try making it more engaging';
 }
 
 /* ═══════════════════════════════════════
@@ -1232,7 +1232,7 @@ var tourSteps=[
   {el:'tourVibe',title:'Choose your vibe ✨',desc:'Pick a style that matches your personality. Use the Tone Mixer to blend two styles together for a unique result.'},
   {el:'tourTrending',title:'Trending hashtags 🔥',desc:'Click a category to load trending hashtags. Click any tag to add it to your caption context automatically.'},
   {el:'tourFinetune',title:'Fine-tune your output 🎯',desc:'Pick a caption template, choose your mood, language and length. Use Multi-platform mode to get captions tailored for TikTok, Twitter/X or LinkedIn!'},
-  {el:'tourSchedule',title:'Schedule a reminder ⏰',desc:'Set a date and time — you\'ll get a browser notification reminding you to post. Never miss your best posting time!'},
+  {el:'tourSchedule',title:'Schedule a reminder ⏰',desc:'Set a date and time - you\'ll get a browser notification reminding you to post. Never miss your best posting time!'},
   {el:'tourHistory',title:'Caption History 🕐',desc:'Every caption you generate is saved here. Rate your favourites with 👍 and find them easily later. Click History in the nav to open it!'}
 ];
 var tourIndex=0;
@@ -1308,7 +1308,7 @@ function escHtml(str){
 ═══════════════════════════════════════ */
 function regenerateCaption(index,card){
   var btn=card.querySelector('.regen-btn');
-  if(btn){btn.disabled=true;btn.textContent='…';}
+  if(btn){btn.disabled=true;btn.textContent='...';}
   var fd=buildFormData();
   fd.append('regenerate_index',index);
   fetch('/generate',{method:'POST',body:fd})
@@ -1331,7 +1331,7 @@ function generate(){
   if(type==='story'){generateStory();return;}
   if(type==='ab'){generateAB();return;}
 
-  showLoading('Crafting your captions…');
+  showLoading('Crafting your captions...');
   fetch('/generate',{method:'POST',body:buildFormData()})
     .then(function(r){return r.json();})
     .then(function(data){
@@ -1349,7 +1349,7 @@ function generate(){
    STORY
 ═══════════════════════════════════════ */
 function generateStory(){
-  showLoading('Writing Story captions with polls…');
+  showLoading('Writing Story captions with polls...');
   var fd=buildFormData();fd.append('story_mode','true');
   fetch('/generate',{method:'POST',body:fd})
     .then(function(r){return r.json();})
@@ -1382,7 +1382,7 @@ function generateStory(){
    A/B TEST
 ═══════════════════════════════════════ */
 function generateAB(){
-  showLoading('Building your A/B versions…');
+  showLoading('Building your A/B versions...');
   fetch('/ab_test',{method:'POST',body:buildFormData()})
     .then(function(r){return r.json();})
     .then(function(data){
@@ -1390,7 +1390,7 @@ function generateAB(){
       if(data.error){showError(data.error);return;}
       var html='<div class="ab-grid">' +
         '<div class="ab-card">' +
-          '<span class="ab-label a">Version A — Short</span>' +
+          '<span class="ab-label a">Version A - Short</span>' +
           '<div class="ab-text">'+escHtml(data.version_a)+'</div>' +
           '<div class="caption-actions">' +
             '<button class="action-btn" onclick="copyText('+JSON.stringify(data.version_a)+', this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>' +
@@ -1398,7 +1398,7 @@ function generateAB(){
           '</div>' +
         '</div>' +
         '<div class="ab-card">' +
-          '<span class="ab-label b">Version B — Long</span>' +
+          '<span class="ab-label b">Version B - Long</span>' +
           '<div class="ab-text">'+escHtml(data.version_b)+'</div>' +
           '<div class="caption-actions">' +
             '<button class="action-btn" onclick="copyText('+JSON.stringify(data.version_b)+', this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>' +
@@ -1417,7 +1417,7 @@ function generateAB(){
 ═══════════════════════════════════════ */
 function generateHashtags(){
   if(!selectedFiles.length){showError('Please upload a photo first.');return;}
-  showLoading('Generating hashtags…');
+  showLoading('Generating hashtags...');
   var fd=buildFormData();fd.append('hashtags_only','true');
   fetch('/generate',{method:'POST',body:fd})
     .then(function(r){return r.json();})
@@ -1431,7 +1431,7 @@ function generateHashtags(){
           '<button class="action-btn" onclick="shareCaption('+JSON.stringify(data.hashtags)+')">💬 WhatsApp</button>' +
         '</div>' +
       '</div>';
-      showResults('Hashtags','20–25 tags',html,null);
+      showResults('Hashtags','20-25 tags',html,null);
     })
     .catch(function(){hideLoading();showError('Something went wrong.');});
 }
@@ -1441,7 +1441,7 @@ function generateHashtags(){
 ═══════════════════════════════════════ */
 function analyzeImage(){
   if(!selectedFiles.length){showError('Please upload a photo first.');return;}
-  showLoading('Analyzing your photo…');
+  showLoading('Analyzing your photo...');
   var fd=new FormData();fd.append('image',selectedFiles[0]);
   fetch('/analyze',{method:'POST',body:fd})
     .then(function(r){return r.json();})
@@ -1452,8 +1452,8 @@ function analyzeImage(){
       var tagsHtml=(data.tags&&data.tags.length)?'<strong>Tags:</strong> '+data.tags.map(function(t){return '@'+t;}).join(' '):'';
       var html='<div class="caption-card">' +
         '<div class="caption-text" style="font-size:14px">' +
-          '<strong>Description:</strong> '+escHtml(data.image_description||'—')+'<br>' +
-          '<strong>Mood:</strong> '+escHtml(data.emotion||'—')+' <span style="color:var(--text-muted2);font-size:12px">('+escHtml(data.emotion_confidence||'—')+')</span><br>' +
+          '<strong>Description:</strong> '+escHtml(data.image_description||'-')+'<br>' +
+          '<strong>Mood:</strong> '+escHtml(data.emotion||'-')+' <span style="color:var(--text-muted2);font-size:12px">('+escHtml(data.emotion_confidence||'-')+')</span><br>' +
           (data.language?'<strong>Language:</strong> '+escHtml(data.language)+'<br>':'')+tagsHtml +
         '</div>' +
         ((data.tags&&data.tags.length)?'<div class="caption-actions" style="margin-top:10px"><button class="action-btn" onclick="copyText('+JSON.stringify(data.tags.map(function(t){return '@'+t;}).join(' '))+', this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy tags</button></div>':'') +
@@ -1468,7 +1468,7 @@ function analyzeImage(){
    BIO
 ═══════════════════════════════════════ */
 function generateBio(){
-  showLoading('Crafting your Instagram bio…');
+  showLoading('Crafting your Instagram bio...');
   var fd=new FormData();
   fd.append('style',getSelected('vibeGroup'));
   fd.append('audience',getSelected('audienceGroup'));
