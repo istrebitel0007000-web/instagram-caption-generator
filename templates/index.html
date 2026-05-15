@@ -221,9 +221,9 @@ textarea::placeholder{color:var(--text-muted2);}
 /* ── TRENDING HASHTAGS ── */
 .trending-section{margin-bottom:1.25rem;}
 .trending-cats{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;margin-bottom:4px;}
-.trend-cat{font-size:13px;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;padding:6px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-muted);cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:4px;}
+.trend-cat{font-size:13px;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;padding:6px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
 .trend-cat.active{background:var(--teal-light);border-color:var(--teal-mid);color:var(--teal-dark);}
-.trend-cat:hover:not(.active){border-color:var(--border2);color:var(--text-secondary);}
+.trend-cat:hover:not(.active){border-color:var(--border2);color:var(--text-secondary);background:var(--bg-surface);}
 .trending-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .trend-tag{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;background:var(--teal-light);color:var(--teal-dark);cursor:pointer;border:none;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.15s;}
 .trend-tag:hover{background:var(--teal-mid);}
@@ -401,6 +401,7 @@ textarea::placeholder{color:var(--text-muted2);}
     <span class="nav-badge">AI-powered</span>
   </div>
   <div class="nav-right">
+    <button class="nav-tour-btn" onclick="startTour()" title="Start guided tour">🗺️</button>
     <button class="nav-history-btn" onclick="openHistory()" id="tourHistory">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       History
@@ -527,7 +528,7 @@ textarea::placeholder{color:var(--text-muted2);}
     <!-- TRENDING HASHTAGS -->
     <div class="trending-section" id="tourTrending">
       <div class="sec-label">Trending hashtag categories</div>
-      <div class="trending-cats">
+      <div class="pill-group trending-cats">
         <button class="trend-cat" onclick="loadTrending('travel',this)">✈️ Travel</button>
         <button class="trend-cat" onclick="loadTrending('food',this)">🍕 Food</button>
         <button class="trend-cat" onclick="loadTrending('fitness',this)">💪 Fitness</button>
@@ -1276,9 +1277,13 @@ function tourSkip(){
   try{localStorage.setItem('capgen-tour-done','1');}catch(e){}
 }
 
-// Auto-start tour for first-time users
+// Auto-start tour for first-time users only
 (function(){
-  try{if(!localStorage.getItem('capgen-tour-done')){setTimeout(startTour,1200);}}catch(e){}
+  try{
+    if(!localStorage.getItem('capgen-tour-done')){
+      setTimeout(startTour,1400);
+    }
+  }catch(e){setTimeout(startTour,1400);}
 })();
 
 /* ═══════════════════════════════════════
