@@ -59,7 +59,7 @@ nav { background:var(--bg-nav); border-bottom:1px solid var(--border); padding:0
 .nav-dot { width:10px; height:10px; border-radius:50%; background:var(--teal); animation:dot-pulse 2.5s ease-in-out infinite; }
 @keyframes dot-pulse { 0%,100%{opacity:1;transform:scale(1);box-shadow:0 0 0 0 var(--teal-glow);}50%{opacity:0.7;transform:scale(0.85);box-shadow:0 0 0 6px transparent;} }
 .nav-name { font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--text-primary); letter-spacing:-0.3px; }
-.nav-badge {font-size:11px;font-weight:600;color:#ffffff;background:var(--teal);padding:3px 10px;border-radius:999px;transition:background 0.35s,color 0.35s;}
+.nav-badge{font-size:11px;font-weight:600;color:#ffffff;background:var(--teal);padding:3px 10px;border-radius:999px;transition:background 0.35s,color 0.35s;}
 .nav-right { display:flex; align-items:center; gap:10px; }
 .nav-history-btn { font-size:12px; font-weight:600; font-family:'Plus Jakarta Sans',sans-serif; padding:6px 12px; border-radius:999px; border:1.5px solid var(--border2); background:var(--bg-card); color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s; }
 .nav-history-btn:hover { border-color:var(--teal-mid); color:var(--teal-dark); background:var(--teal-light); }
@@ -129,7 +129,7 @@ nav { background:var(--bg-nav); border-bottom:1px solid var(--border); padding:0
 /* ── CARDS ── */
 .card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:1rem; box-shadow:var(--shadow); transition:background 0.35s,border-color 0.35s; animation:fadeUp 0.45s ease both; }
 .card-header { display:flex; align-items:center; gap:10px; margin-bottom:1.25rem; }
-.card-num { width:26px; height:26px; border-radius:50%; background:var(--teal-light); color:var(--teal-dark); font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.35s,color 0.35s; }
+.card-num{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#ffffff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.35s,color 0.35s;}
 .card-title { font-size:15px; font-weight:600; color:var(--text-primary); }
 
 /* ── TYPE TOGGLE ── */
@@ -252,7 +252,7 @@ textarea::placeholder{color:var(--text-muted2);}
 .results-badge{font-size:12px;font-weight:600;color:#ffffff;background:var(--teal);padding:4px 12px;border-radius:999px;transition:background 0.35s,color 0.35s;}
 .results-top-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}
 .copy-all-btn{font-size:13px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;padding:8px 16px;border-radius:999px;border:none;background:var(--teal);color:#ffffff;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.15s;}
-.copy-all-btn:hover{background:var(--teal-mid);}
+.copy-all-btn:hover{opacity:0.85;}
 .copy-all-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
 
 /* ── CAPTION CARD ── */
