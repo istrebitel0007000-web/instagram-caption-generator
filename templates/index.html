@@ -220,8 +220,8 @@ textarea::placeholder{color:var(--text-muted2);}
 
 /* ── TRENDING HASHTAGS ── */
 .trending-section{margin-bottom:1.25rem;}
-.trending-cats{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
-.trend-cat{font-size:12px;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;padding:5px 12px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg-surface);color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
+.trending-cats{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;margin-bottom:4px;}
+.trend-cat{font-size:13px;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;padding:6px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-muted);cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:4px;}
 .trend-cat.active{background:var(--teal-light);border-color:var(--teal-mid);color:var(--teal-dark);}
 .trend-cat:hover:not(.active){border-color:var(--border2);color:var(--text-secondary);}
 .trending-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
@@ -1242,23 +1242,27 @@ function showTourStep(){
   var step=tourSteps[tourIndex];
   var el=document.getElementById(step.el);
   if(!el){tourNext();return;}
-  var rect=el.getBoundingClientRect();
-  var pad=8;
-  var hl=document.getElementById('tourHighlight');
-  hl.style.left=(rect.left-pad)+'px';
-  hl.style.top=(rect.top-pad+window.scrollY)+'px';
-  hl.style.width=(rect.width+pad*2)+'px';
-  hl.style.height=(rect.height+pad*2)+'px';
+  // Set text immediately
   document.getElementById('tourTitle').textContent=step.title;
   document.getElementById('tourDesc').textContent=step.desc;
   document.getElementById('tourStepLabel').textContent=(tourIndex+1)+' / '+tourSteps.length;
-  // position tooltip below/above element
-  var tt=document.getElementById('tourTooltip');
-  var top=rect.bottom+pad+12+window.scrollY;
-  if(top+200>window.innerHeight+window.scrollY)top=rect.top-220+window.scrollY;
-  tt.style.top=Math.max(80,top)+'px';
-  tt.style.left=Math.min(rect.left,window.innerWidth-300)+'px';
+  // Scroll to element first, then position after scroll settles
   el.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(function(){
+    var rect=el.getBoundingClientRect();
+    var pad=10;
+    var hl=document.getElementById('tourHighlight');
+    hl.style.left=(rect.left-pad)+'px';
+    hl.style.top=(rect.top-pad)+'px';
+    hl.style.width=(rect.width+pad*2)+'px';
+    hl.style.height=(rect.height+pad*2)+'px';
+    var tt=document.getElementById('tourTooltip');
+    var spaceBelow=window.innerHeight-(rect.bottom+pad+12);
+    var ttTop=spaceBelow>=160 ? rect.bottom+pad+12 : Math.max(70,rect.top-180);
+    var ttLeft=Math.max(12,Math.min(rect.left,window.innerWidth-310));
+    tt.style.top=ttTop+'px';
+    tt.style.left=ttLeft+'px';
+  },450);
 }
 
 function tourNext(){
