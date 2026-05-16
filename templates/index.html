@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CapGen v3.1 - GREEN THEME BUILD -->
+<!-- CapGen v3.2 - GREEN THEME BUILD -->
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -157,14 +157,14 @@ nav { background:var(--bg-nav); border-bottom:1px solid var(--border); padding:0
 .sec-label{font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted2);margin-bottom:8px;}
 .pill-group{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1.25rem;}
 .pill{font-size:13px;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;padding:6px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
-.pill:hover{border-color:var(--border2);color:var(--text-secondary);}
+.pill:hover:not(.selected){border-color:var(--border2);color:var(--text-secondary);}
 .pill.selected{background:var(--teal);border-color:var(--teal);color:#ffffff;font-weight:600;}
 
 /* ── TONE MIXER ── */
 .tone-mixer{margin-bottom:1.25rem;}
 .tone-mixer-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
 .tone-mixer-row select{flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-secondary);background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;outline:none;transition:border-color 0.15s,background 0.35s;}
-.tone-mixer-row select:focus{border-color:var(--teal);}
+.tone-mixer-row select:focus{border-color:var(--border2);}
 .tone-pct{font-size:12px;font-weight:600;color:var(--teal-dark);min-width:36px;text-align:center;}
 .tone-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border2);outline:none;cursor:pointer;}
 .tone-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);border:2px solid var(--bg-card);box-shadow:0 0 0 1.5px var(--teal-mid);}
@@ -174,7 +174,7 @@ nav { background:var(--bg-nav); border-bottom:1px solid var(--border); padding:0
 @media(max-width:540px){.field-grid{grid-template-columns:1fr 1fr;}}
 .field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted2);display:block;margin-bottom:6px;}
 select{width:100%;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-secondary);background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;padding:8px 28px 8px 10px;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color 0.15s,background 0.35s,color 0.35s;}
-select:focus{border-color:var(--teal);}
+select:focus{border-color:var(--border2);}
 
 /* ── SLIDER ── */
 .length-row{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;}
@@ -186,7 +186,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;hei
 /* ── CAPTION TEMPLATES ── */
 .templates-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1.25rem;}
 .tpl-btn{font-size:13px;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;padding:6px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
-.tpl-btn:hover{border-color:var(--teal-mid);color:var(--teal-dark);background:var(--teal-light);}
+.tpl-btn:hover:not(.active){border-color:var(--teal-mid);color:var(--teal-dark);background:var(--teal-light);}
 .tpl-btn.active{background:var(--teal);border-color:var(--teal);color:#ffffff;font-weight:600;}
 
 /* ── TEXTAREA ── */
@@ -666,7 +666,7 @@ textarea::placeholder{color:var(--text-muted2);}
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:8px;left:8px;font-size:10px;font-weight:700;color:var(--text-muted2);z-index:999;font-family:monospace;letter-spacing:0.05em;">v3.1</div>
+<div style="position:fixed;bottom:8px;left:8px;font-size:10px;font-weight:700;color:var(--text-muted2);z-index:999;font-family:monospace;letter-spacing:0.05em;">v3.2</div>
 
 <script>
 'use strict';
