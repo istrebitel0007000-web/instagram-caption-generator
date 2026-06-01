@@ -5,6 +5,7 @@ import secrets
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -26,6 +27,25 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
+# ─── SECURITY: Talisman security headers ─────────────────────────────────────
+# force_https=False until Certbot is installed — flip to True after HTTPS works
+# content_security_policy=False keeps your frontend fetch() calls working safely
+# frame_options blocks clickjacking
+# strict_transport_security adds HSTS once HTTPS is live
+HTTPS_ENABLED = os.getenv("HTTPS_ENABLED", "false").lower() == "true"
+Talisman(
+    app,
+    force_https=HTTPS_ENABLED,
+    strict_transport_security=HTTPS_ENABLED,
+    strict_transport_security_max_age=31536000,
+    content_security_policy=False,
+    frame_options="DENY",
+    content_type_options=True,
+    referrer_policy="strict-origin-when-cross-origin",
+    session_cookie_secure=HTTPS_ENABLED,
+    session_cookie_http_only=True,
+)
+
 # ─── SECURITY: Access password (set APP_PASSWORD in .env) ────────────────────
 APP_PASSWORD = os.getenv("APP_PASSWORD", "")
 
@@ -34,7 +54,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
 # ─── SECURITY: Auth helper ───────────────────────────────────────────────────
 def is_authenticated():
     if not APP_PASSWORD:
-        return True  # No password set = open access (backward compatible)
+        return True
     return session.get("authenticated") is True
 
 def require_auth(f):
@@ -124,7 +144,7 @@ def build_image_blocks(images):
     return blocks
 
 # ──────────────────────────────────────────────────────────────────────────────
-# SECURITY: Login / Logout routes (only active when APP_PASSWORD is set)
+# SECURITY: Login / Logout routes
 # ──────────────────────────────────────────────────────────────────────────────
 
 @app.route("/login", methods=["GET", "POST"])
@@ -178,7 +198,7 @@ def logout():
     return redirect(url_for("login"))
 
 # ──────────────────────────────────────────────────────────────────────────────
-# YOUR ORIGINAL ROUTES — only @require_auth and @limiter added above each one
+# YOUR ORIGINAL ROUTES — only @require_auth and @limiter added
 # All function bodies are 100% untouched
 # ──────────────────────────────────────────────────────────────────────────────
 
