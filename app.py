@@ -40,7 +40,7 @@ Talisman(
     strict_transport_security_max_age=31536000,
     content_security_policy=False,
     frame_options="DENY",
-    content_type_options=True,
+    x_content_type_options=True,
     referrer_policy="strict-origin-when-cross-origin",
     session_cookie_secure=HTTPS_ENABLED,
     session_cookie_http_only=True,
