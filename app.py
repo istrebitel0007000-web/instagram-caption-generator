@@ -1,11 +1,11 @@
 import os
-import json
 import base64
-import secrets
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+import json
+import imghdr
+from io import BytesIO
+from flask import Flask, request, jsonify, render_template
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_talisman import Talisman
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -13,124 +13,126 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# ─── SECURITY: Secret key for sessions ───────────────────────────────────────
-app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
+# ─── SECURITY: Max request size (20MB total) ───────────────────────────────────
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB
 
-# ─── SECURITY: Max upload size = 10MB ────────────────────────────────────────
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
-
-# ─── SECURITY: Rate limiter (per IP) ─────────────────────────────────────────
+# ─── SECURITY: Rate limiting ───────────────────────────────────────────────────
 limiter = Limiter(
-    key_func=get_remote_address,
+    get_remote_address,
     app=app,
-    default_limits=[],
+    default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://",
 )
 
-# ─── SECURITY: Talisman security headers ─────────────────────────────────────
-# force_https=False until Certbot is installed — flip to True after HTTPS works
-# content_security_policy=False keeps your frontend fetch() calls working safely
-# frame_options blocks clickjacking
-# strict_transport_security adds HSTS once HTTPS is live
-HTTPS_ENABLED = os.getenv("HTTPS_ENABLED", "false").lower() == "true"
-Talisman(
-    app,
-    force_https=HTTPS_ENABLED,
-    strict_transport_security=HTTPS_ENABLED,
-    strict_transport_security_max_age=31536000,
-    content_security_policy=False,
-    frame_options="DENY",
-    x_content_type_options=True,
-    referrer_policy="strict-origin-when-cross-origin",
-    session_cookie_secure=HTTPS_ENABLED,
-    session_cookie_http_only=True,
-)
-
-# ─── SECURITY: Access password (set APP_PASSWORD in .env) ────────────────────
-APP_PASSWORD = os.getenv("APP_PASSWORD", "")
-
 client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
 
-# ─── SECURITY: Auth helper ───────────────────────────────────────────────────
-def is_authenticated():
-    if not APP_PASSWORD:
-        return True
-    return session.get("authenticated") is True
-
-def require_auth(f):
-    from functools import wraps
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not is_authenticated():
-            if request.is_json or request.method == "POST":
-                return jsonify({"error": "Unauthorized"}), 401
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated
-
-# ──────────────────────────────────────────────────────────────────────────────
-# YOUR ORIGINAL DATA — UNTOUCHED
-# ──────────────────────────────────────────────────────────────────────────────
+# ─── ALLOWED IMAGE TYPES ───────────────────────────────────────────────────────
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB per image
 
 STYLES = {
-    "casual": {"label": "Casual & Fun", "emoji": "😎", "description": "relaxed, fun, and conversational tone with emojis"},
-    "aesthetic": {"label": "Aesthetic", "emoji": "✨", "description": "dreamy, poetic, and visually descriptive tone"},
-    "motivational": {"label": "Motivational", "emoji": "💪", "description": "inspiring, energetic, and uplifting tone"},
-    "funny": {"label": "Funny & Witty", "emoji": "😂", "description": "humorous, clever, and playful tone with jokes or puns"},
-    "professional": {"label": "Professional", "emoji": "💼", "description": "polished, formal, and business-appropriate tone"},
-    "romantic": {"label": "Romantic", "emoji": "❤️", "description": "loving, warm, and heartfelt tone"},
+    "casual":       {"label": "Casual & Fun",    "emoji": "😎", "description": "relaxed, fun, and conversational tone with emojis"},
+    "aesthetic":    {"label": "Aesthetic",        "emoji": "✨", "description": "dreamy, poetic, and visually descriptive tone"},
+    "motivational": {"label": "Motivational",     "emoji": "💪", "description": "inspiring, energetic, and uplifting tone"},
+    "funny":        {"label": "Funny & Witty",    "emoji": "😂", "description": "humorous, clever, and playful tone with jokes or puns"},
+    "professional": {"label": "Professional",     "emoji": "💼", "description": "polished, formal, and business-appropriate tone"},
+    "romantic":     {"label": "Romantic",         "emoji": "❤️", "description": "loving, warm, and heartfelt tone"},
 }
 
 LENGTH_INSTRUCTIONS = {
-    "short": "Keep each caption very short — maximum 1-2 sentences, under 80 characters. Be punchy and impactful.",
+    "short":  "Keep each caption very short — maximum 1-2 sentences, under 80 characters. Be punchy and impactful.",
     "medium": "Keep each caption medium length — 2-3 sentences, around 100-180 characters.",
-    "long": "Write longer, detailed captions — 3-5 sentences, around 200-350 characters. Include more storytelling.",
+    "long":   "Write longer, detailed captions — 3-5 sentences, around 200-350 characters. Include more storytelling.",
 }
 
 LANGUAGE_INSTRUCTIONS = {
-    "english": "Write in English.",
-    "spanish": "Write in Spanish (Español).",
-    "french": "Write in French (Français).",
-    "german": "Write in German (Deutsch).",
+    "english":    "Write in English.",
+    "spanish":    "Write in Spanish (Español).",
+    "french":     "Write in French (Français).",
+    "german":     "Write in German (Deutsch).",
     "portuguese": "Write in Portuguese (Português).",
-    "arabic": "Write in Arabic (العربية).",
-    "russian": "Write in Russian (Русский).",
-    "uzbek": "Write in Uzbek (O'zbek tili).",
+    "arabic":     "Write in Arabic (العربية).",
+    "russian":    "Write in Russian (Русский).",
+    "uzbek":      "Write in Uzbek (O'zbek tili).",
 }
 
 MOOD_INSTRUCTIONS = {
-    "none": "",
-    "happy": "Make the captions feel joyful, bright, and celebratory.",
-    "sad": "Make the captions feel nostalgic, melancholic, and reflective.",
+    "none":       "",
+    "happy":      "Make the captions feel joyful, bright, and celebratory.",
+    "sad":        "Make the captions feel nostalgic, melancholic, and reflective.",
     "mysterious": "Make the captions feel mysterious, intriguing, and thought-provoking.",
-    "bold": "Make the captions feel bold, powerful, confident, and strong.",
-    "chill": "Make the captions feel relaxed, peaceful, and laid-back.",
-    "grateful": "Make the captions feel grateful, appreciative, and warm-hearted.",
+    "bold":       "Make the captions feel bold, powerful, confident, and strong.",
+    "chill":      "Make the captions feel relaxed, peaceful, and laid-back.",
+    "grateful":   "Make the captions feel grateful, appreciative, and warm-hearted.",
 }
 
 AUDIENCE_INSTRUCTIONS = {
-    "general": "",
-    "teens": "Target audience: teenagers (13-19). Use trendy slang, pop culture references, energetic tone. Keep it short and punchy.",
+    "general":       "",
+    "teens":         "Target audience: teenagers (13-19). Use trendy slang, pop culture references, energetic tone. Keep it short and punchy.",
     "professionals": "Target audience: working professionals. Use sophisticated vocabulary, career-relevant references, polished tone.",
-    "fitness": "Target audience: fitness enthusiasts. Use gym/workout terminology, motivational language, health-focused references.",
-    "foodies": "Target audience: food lovers. Use mouth-watering descriptions, culinary terms, food culture references.",
-    "travelers": "Target audience: travel enthusiasts. Use wanderlust language, adventure references, destination-focused vocabulary.",
-    "parents": "Target audience: parents and families. Use warm, relatable family content, parenting humor, wholesome references.",
+    "fitness":       "Target audience: fitness enthusiasts. Use gym/workout terminology, motivational language, health-focused references.",
+    "foodies":       "Target audience: food lovers. Use mouth-watering descriptions, culinary terms, food culture references.",
+    "travelers":     "Target audience: travel enthusiasts. Use wanderlust language, adventure references, destination-focused vocabulary.",
+    "parents":       "Target audience: parents and families. Use warm, relatable family content, parenting humor, wholesome references.",
     "entrepreneurs": "Target audience: entrepreneurs and business owners. Use hustle culture language, success mindset, business references.",
-    "creatives": "Target audience: artists and creative professionals. Use artistic vocabulary, creative process references, inspiration-focused language.",
+    "creatives":     "Target audience: artists and creative professionals. Use artistic vocabulary, creative process references, inspiration-focused language.",
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
-# YOUR ORIGINAL HELPERS — UNTOUCHED
-# ──────────────────────────────────────────────────────────────────────────────
+
+# ─── SECURITY: File validation helpers ────────────────────────────────────────
+
+def allowed_file(filename):
+    """Check file extension is allowed."""
+    if "." not in filename:
+        return False
+    ext = filename.rsplit(".", 1)[-1].lower()
+    return ext in ALLOWED_EXTENSIONS
+
+
+def validate_image(file_storage):
+    """
+    Validate that the uploaded file is truly an image.
+    Checks: extension, size, and actual file magic bytes.
+    Returns (True, None) if valid, (False, error_message) if not.
+    """
+    filename = file_storage.filename or ""
+
+    # 1. Extension check
+    if not allowed_file(filename):
+        return False, f"File '{filename}' has an invalid extension. Allowed: jpg, jpeg, png, webp, gif"
+
+    # 2. Read file data
+    data = file_storage.read()
+    file_storage.seek(0)  # Reset stream so it can be read again later
+
+    # 3. Size check
+    if len(data) > MAX_IMAGE_SIZE:
+        return False, f"File '{filename}' exceeds the 10MB limit"
+
+    # 4. Magic bytes check — verify it's actually an image
+    detected = imghdr.what(None, h=data)
+    if detected is None:
+        return False, f"File '{filename}' does not appear to be a valid image"
+
+    # imghdr returns 'jpeg' for jpg files
+    if detected == "jpeg":
+        detected = "jpg"
+    if detected not in ALLOWED_EXTENSIONS:
+        return False, f"File '{filename}' is not an allowed image type (detected: {detected})"
+
+    return True, None
+
 
 def encode_image(image_file):
     data = image_file.read()
     return base64.b64encode(data).decode("utf-8")
 
+
 def get_mime(filename):
     ext = (filename.rsplit(".", 1)[-1].lower()) if filename else "jpeg"
     return f"image/{'jpeg' if ext in ('jpg', 'jpeg') else ext}"
+
 
 def build_image_blocks(images):
     blocks = []
@@ -143,109 +145,81 @@ def build_image_blocks(images):
         })
     return blocks
 
-# ──────────────────────────────────────────────────────────────────────────────
-# SECURITY: Login / Logout routes
-# ──────────────────────────────────────────────────────────────────────────────
 
-@app.route("/login", methods=["GET", "POST"])
-@limiter.limit("10/minute")
-def login():
-    if not APP_PASSWORD:
-        return redirect(url_for("index"))
-    error = None
-    if request.method == "POST":
-        if request.form.get("password") == APP_PASSWORD:
-            session["authenticated"] = True
-            return redirect(url_for("index"))
-        error = "Wrong password."
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>CapGen — Login</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <style>
-        body {{ font-family: sans-serif; display: flex; align-items: center;
-               justify-content: center; min-height: 100vh; margin: 0;
-               background: #f5f5f5; }}
-        .box {{ background: white; padding: 2rem; border-radius: 12px;
-                box-shadow: 0 2px 16px rgba(0,0,0,0.1); width: 100%; max-width: 360px; }}
-        h2 {{ margin: 0 0 1.5rem; font-size: 20px; }}
-        input[type=password] {{ width: 100%; padding: 10px; border: 1px solid #ddd;
-                                border-radius: 8px; font-size: 15px; box-sizing: border-box; }}
-        button {{ margin-top: 1rem; width: 100%; padding: 10px;
-                  background: #1D9E75; color: white; border: none;
-                  border-radius: 8px; font-size: 15px; cursor: pointer; }}
-        .err {{ color: #c0392b; font-size: 13px; margin-top: 8px; }}
-      </style>
-    </head>
-    <body>
-      <div class="box">
-        <h2>🔐 CapGen</h2>
-        <form method="POST">
-          <input type="password" name="password" placeholder="Enter password" autofocus>
-          <button type="submit">Enter</button>
-          {"<p class='err'>" + error + "</p>" if error else ""}
-        </form>
-      </div>
-    </body>
-    </html>
-    """
+def validate_images(images):
+    """Validate a list of uploaded image files. Returns (valid_images, error_response)."""
+    if not images:
+        return None, (jsonify({"error": "No image provided"}), 400)
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+    validated = []
+    for img in images[:4]:  # Max 4 images
+        ok, err = validate_image(img)
+        if not ok:
+            return None, (jsonify({"error": err}), 400)
+        validated.append(img)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# YOUR ORIGINAL ROUTES — only @require_auth and @limiter added
-# All function bodies are 100% untouched
-# ──────────────────────────────────────────────────────────────────────────────
+    return validated, None
+
+
+# ─── ERROR HANDLER: Request too large ─────────────────────────────────────────
+@app.errorhandler(413)
+def request_too_large(e):
+    return jsonify({"error": "Request too large. Maximum total upload size is 20MB."}), 413
+
+
+# ─── ERROR HANDLER: Rate limit exceeded ───────────────────────────────────────
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({"error": "Too many requests. Please slow down and try again later."}), 429
+
+
+# ─── ROUTES ───────────────────────────────────────────────────────────────────
 
 @app.route("/")
-@require_auth
 def index():
     return render_template("index.html", styles=STYLES)
 
 
 @app.route("/generate", methods=["POST"])
-@require_auth
-@limiter.limit("20/minute")
+@limiter.limit("30 per minute")  # Max 30 caption generations per minute per IP
 def generate():
     images = request.files.getlist("images[]")
     single_image = request.files.get("image")
     if single_image and not images:
         images = [single_image]
 
-    style_key = request.form.get("style", "casual")
+    # ── Validate images ──
+    images, err = validate_images(images)
+    if err:
+        return err
+
+    style_key  = request.form.get("style", "casual")
     style_key2 = request.form.get("style2", None)
-    language = request.form.get("language", "english")
-    length = request.form.get("length", "medium")
-    mood = request.form.get("mood", "none")
-    audience = request.form.get("audience", "general")
-    custom_prompt = (request.form.get("custom_prompt") or "").strip()
-    hashtags_only = request.form.get("hashtags_only", "false").lower() == "true"
+    language   = request.form.get("language", "english")
+    length     = request.form.get("length", "medium")
+    mood       = request.form.get("mood", "none")
+    audience   = request.form.get("audience", "general")
+    custom_prompt    = (request.form.get("custom_prompt") or "").strip()[:500]  # Limit custom prompt length
+    hashtags_only    = request.form.get("hashtags_only", "false").lower() == "true"
     regenerate_index = request.form.get("regenerate_index", None)
-    story_mode = request.form.get("story_mode", "false").lower() == "true"
+    story_mode       = request.form.get("story_mode", "false").lower() == "true"
 
-    if not images:
-        return jsonify({"error": "No image provided"}), 400
-
-    images = images[:4]
     is_carousel = len(images) > 1
 
-    style = STYLES.get(style_key, STYLES["casual"])
+    style  = STYLES.get(style_key, STYLES["casual"])
     style2 = STYLES.get(style_key2, None) if style_key2 else None
+
     style_desc = style["description"]
     if style2:
         style_desc = f"{style['description']} combined with {style2['description']}"
 
-    length_instr = LENGTH_INSTRUCTIONS.get(length, LENGTH_INSTRUCTIONS["medium"])
-    lang_instr = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["english"])
-    mood_instr = MOOD_INSTRUCTIONS.get(mood, "")
+    length_instr   = LENGTH_INSTRUCTIONS.get(length, LENGTH_INSTRUCTIONS["medium"])
+    lang_instr     = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["english"])
+    mood_instr     = MOOD_INSTRUCTIONS.get(mood, "")
     audience_instr = AUDIENCE_INSTRUCTIONS.get(audience, "")
-    custom_context = f"\nExtra context: {custom_prompt}" if custom_prompt else ""
-    mood_context = f"\nMood: {mood_instr}" if mood_instr else ""
+
+    custom_context   = f"\nExtra context: {custom_prompt}" if custom_prompt else ""
+    mood_context     = f"\nMood: {mood_instr}" if mood_instr else ""
     audience_context = f"\n{audience_instr}" if audience_instr else ""
     carousel_context = "\nThis is a carousel/gallery post with multiple photos. Reference the collection as a whole." if is_carousel else ""
 
@@ -256,7 +230,6 @@ def generate():
             prompt = f"""Look at {'these photos' if is_carousel else 'this photo'} and generate 20-25 relevant Instagram hashtags.
 
 {lang_instr}
-
 Style context: {style_desc}{custom_context}{audience_context}{carousel_context}
 
 Rules:
@@ -313,11 +286,7 @@ QUESTION: [open-ended question to ask followers]
             stories = stories[:3]
             while len(stories) < 3:
                 stories.append({"caption": "✨ Swipe up!", "poll": "Love it or nah?", "question": "What do you think?"})
-            return jsonify({
-                "stories": stories,
-                "style": style["label"],
-                "language": language,
-            })
+            return jsonify({"stories": stories, "style": style["label"], "language": language})
 
         elif regenerate_index is not None:
             prompt = f"""Look at {'these photos' if is_carousel else 'this photo'} and write exactly 1 Instagram caption.
@@ -384,16 +353,15 @@ Rules:
 
 
 @app.route("/bio", methods=["POST"])
-@require_auth
-@limiter.limit("20/minute")
+@limiter.limit("20 per minute")
 def generate_bio():
-    style_key = request.form.get("style", "casual")
-    audience = request.form.get("audience", "general")
-    language = request.form.get("language", "english")
-    custom_prompt = (request.form.get("custom_prompt") or "").strip()
+    style_key     = request.form.get("style", "casual")
+    audience      = request.form.get("audience", "general")
+    language      = request.form.get("language", "english")
+    custom_prompt = (request.form.get("custom_prompt") or "").strip()[:500]
 
-    style = STYLES.get(style_key, STYLES["casual"])
-    lang_instr = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["english"])
+    style          = STYLES.get(style_key, STYLES["casual"])
+    lang_instr     = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["english"])
     audience_instr = AUDIENCE_INSTRUCTIONS.get(audience, "")
     custom_context = f"\nExtra details: {custom_prompt}" if custom_prompt else ""
 
@@ -418,7 +386,7 @@ Rules:
             messages=[{"role": "user", "content": prompt}],
             max_tokens=300,
         )
-        raw = response.choices[0].message.content.strip()
+        raw  = response.choices[0].message.content.strip()
         bios = [b.strip() for b in raw.split("\n\n") if b.strip()]
         bios = bios[:3]
         while len(bios) < 3:
@@ -430,20 +398,23 @@ Rules:
 
 
 @app.route("/analyze", methods=["POST"])
-@require_auth
-@limiter.limit("20/minute")
+@limiter.limit("20 per minute")
 def analyze():
     """Auto-detect language, emotion, and suggest tags from image."""
     image = request.files.get("image")
     if not image:
         return jsonify({"error": "No image provided"}), 400
 
+    # ── Validate image ──
+    ok, err = validate_image(image)
+    if not ok:
+        return jsonify({"error": err}), 400
+
     try:
         img_data = encode_image(image)
-        mime = get_mime(image.filename)
+        mime     = get_mime(image.filename)
 
         prompt = """Analyze this image carefully and return a JSON object with exactly these fields:
-
 {
   "language": "detected language code if there is visible text in the image (english/spanish/french/german/portuguese/arabic/russian/uzbek), or null if no text",
   "emotion": "dominant emotion/mood detected (happy/sad/excited/calm/romantic/mysterious/bold/chill/grateful/energetic/nostalgic), pick the single best one",
@@ -451,7 +422,6 @@ def analyze():
   "tags": ["up to 5 relevant @tag suggestions for brands, locations, or account types - just the word without @"],
   "image_description": "one short sentence describing the image content"
 }
-
 Rules:
 - Only return the JSON object, nothing else
 - No markdown, no backticks, just pure JSON
@@ -466,8 +436,8 @@ Rules:
             ]}],
             max_tokens=300,
         )
-        raw = response.choices[0].message.content.strip()
-        raw = raw.replace("```json", "").replace("```", "").strip()
+        raw    = response.choices[0].message.content.strip()
+        raw    = raw.replace("```json", "").replace("```", "").strip()
         result = json.loads(raw)
         return jsonify(result)
 
@@ -476,8 +446,7 @@ Rules:
 
 
 @app.route("/ab_test", methods=["POST"])
-@require_auth
-@limiter.limit("20/minute")
+@limiter.limit("20 per minute")
 def ab_test():
     """Generate 2 very different caption versions for A/B testing."""
     images = request.files.getlist("images[]")
@@ -485,27 +454,26 @@ def ab_test():
     if single_image and not images:
         images = [single_image]
 
-    if not images:
-        return jsonify({"error": "No image provided"}), 400
+    # ── Validate images ──
+    images, err = validate_images(images)
+    if err:
+        return err
 
-    images = images[:4]
-    style_key = request.form.get("style", "casual")
-    language = request.form.get("language", "english")
-    audience = request.form.get("audience", "general")
-    custom_prompt = (request.form.get("custom_prompt") or "").strip()
+    style_key     = request.form.get("style", "casual")
+    language      = request.form.get("language", "english")
+    audience      = request.form.get("audience", "general")
+    custom_prompt = (request.form.get("custom_prompt") or "").strip()[:500]
 
-    style = STYLES.get(style_key, STYLES["casual"])
-    lang_instr = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["english"])
+    style          = STYLES.get(style_key, STYLES["casual"])
+    lang_instr     = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["english"])
     audience_instr = AUDIENCE_INSTRUCTIONS.get(audience, "")
     custom_context = f"\nExtra context: {custom_prompt}" if custom_prompt else ""
 
     try:
         image_blocks = build_image_blocks(images)
-
         prompt = f"""Look at this image and write 2 very different Instagram captions for A/B testing.
 
 {lang_instr}
-
 Base style: {style["description"]}
 {audience_instr}{custom_context}
 
@@ -528,7 +496,7 @@ Rules:
             messages=[{"role": "user", "content": image_blocks}],
             max_tokens=400,
         )
-        raw = response.choices[0].message.content.strip()
+        raw       = response.choices[0].message.content.strip()
         version_a = ""
         version_b = ""
         for line in raw.split("\n"):
@@ -543,11 +511,7 @@ Rules:
         if not version_b:
             version_b = "Some moments are too beautiful to describe — they just need to be felt. This is one of those moments. ✨"
 
-        return jsonify({
-            "version_a": version_a,
-            "version_b": version_b,
-            "style": style["label"],
-        })
+        return jsonify({"version_a": version_a, "version_b": version_b, "style": style["label"]})
 
     except Exception as e:
         return jsonify({"error": str(e)[:200]}), 500
