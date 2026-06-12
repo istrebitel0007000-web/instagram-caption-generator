@@ -1,6 +1,6 @@
 import json
 from flask import request, jsonify, render_template
-from utils import build_image_blocks, get_context
+from utils import build_image_blocks, get_context, encode_image, get_mime
 import constants
 
 
@@ -128,7 +128,6 @@ Rules: Under 150 chars each, 1-3 emojis, separated by blank lines, no numbering,
 
 
 def analyze(client):
-    from utils import encode_image, get_mime
     image = request.files.get("image")
     if not image:
         return jsonify({"error": "No image provided"}), 400
